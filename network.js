@@ -201,28 +201,36 @@ class SimpleNN {
         }
     }
 
-    // 修改selectAction函数
+    // 修改selectAction函数，明确实现epsilon-greedy策略
     selectAction(state) {
+        // 计算动作概率
         const actionProbs = this.forward(state);
         
-        // 直接从策略分布中采样
-        const rand = Math.random();
-        let cumSum = 0;
-        for (let action = 0; action < this.outputSize; action++) {
-            cumSum += actionProbs[action];
-            if (rand < cumSum) {
-                this.recordStep(state, action, null, Math.log(actionProbs[action] + 1e-8));
-                return action;
-            }
+        // Epsilon-greedy探索策略
+        if (Math.random() < this.epsilon) {
+            // 探索：随机选择动作
+            const randomAction = Math.floor(Math.random() * this.outputSize);
+            this.recordStep(state, randomAction, null, Math.log(actionProbs[randomAction] + 1e-8));
+            return randomAction;
+        } else {
+            // 利用：选择概率最高的动作
+            const bestAction = actionProbs.indexOf(Math.max(...actionProbs));
+            this.recordStep(state, bestAction, null, Math.log(actionProbs[bestAction] + 1e-8));
+            return bestAction;
         }
-        
-        // 如果采样失败，选择概率最高的动作
-        const bestAction = actionProbs.indexOf(Math.max(...actionProbs));
-        this.recordStep(state, bestAction, null, Math.log(actionProbs[bestAction] + 1e-8));
-        return bestAction;
     }
 
-    // 策略梯度更新
+    // 添加专门的探索率更新函数
+    updateExplorationRate() {
+        // 随着训练进行逐渐减小探索率
+        this.epsilon = Math.max(
+            this.epsilonMin, 
+            this.epsilon * this.epsilonDecay
+        );
+        console.log(`更新探索率: ${this.epsilon.toFixed(4)}`);
+    }
+
+    // 修改update函数，加入探索率更新
     update(finalReward) {
         // 更新训练轮数
         this.episodeCount++;
@@ -243,6 +251,9 @@ class SimpleNN {
             // 计算梯度并更新权重
             this.backprop(state, action, G, logProb);
         }
+        
+        // 更新探索率
+        this.updateExplorationRate();
         
         // 清理轨迹
         this.clearTrajectory();
