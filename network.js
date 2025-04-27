@@ -101,13 +101,9 @@ class SimpleNN {
 
     // 前向传播
     forward(state) {
-        // 计算state的坐标表示
-        const row = Math.floor(state / env.cols);
-        const col = state % env.cols;
-        
-        // 使用两个独热编码表示行和列
+        // 创建输入向量 - 使用独热编码表示状态
         const input = Array(this.inputSize).fill(0);
-        input[row * env.cols + col] = 1;
+        input[state] = 1;
         
         // 隐藏层
         const hidden = Array(this.hiddenSize).fill(0);
