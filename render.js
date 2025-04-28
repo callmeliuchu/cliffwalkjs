@@ -13,7 +13,7 @@ let successfulEpisodes = 0;
 function initializeGame(rows = 4, cols = 8) {
     env = new CliffWalkEnv(rows, cols);
     currentState = env.reset();
-    agent = new SimpleNN(env.rows * env.cols, 64, 4);
+    agent = new Agent(env.rows * env.cols, 4);
 }
 
 // 网格更新
