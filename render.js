@@ -312,7 +312,7 @@ function setupKeyboardEvents() {
 
 // 初始化页面
 function initializePage() {
-    initializeGame(4,8);
+    initializeGame(2,4);
     updateGrid();
     updateInfo();
     addTrainingInfo();
