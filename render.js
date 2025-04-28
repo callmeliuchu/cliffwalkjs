@@ -305,7 +305,7 @@ function setupKeyboardEvents() {
             await sleep(300);  // 减少等待时间
         } else {
             // 记录非终止状态的奖励
-            agent.trajectory.rewards.push(reward);
+            agent.recordReward(reward, newState, false);
         }
     });
 }

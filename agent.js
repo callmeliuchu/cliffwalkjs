@@ -16,42 +16,8 @@ class Agent {
         // 添加训练轮数
         this.episodeCount = 0;
         
-        // 添加轨迹存储
-        this.clearTrajectory();
-    }
-
-    // 添加轨迹存储和清理函数
-    clearTrajectory() {
-        this.trajectory = {
-            states: [],
-            actions: [],
-            rewards: [],
-            logProbs: []
-        };
-    }
-
-    // 记录一步轨迹
-    recordStep(state, action, reward, logProb) {
-        this.trajectory.states.push(state);
-        this.trajectory.actions.push(action);
-        this.trajectory.rewards.push(reward);
-        this.trajectory.logProbs.push(logProb);
-    }
-
-    // 计算折扣回报
-    computeDiscountedReturns(rewards, gamma = 0.99) {
-        const returns = new Array(rewards.length).fill(0);
-        let runningReturn = 0;
-        
-        for (let t = rewards.length - 1; t >= 0; t--) {
-            runningReturn = rewards[t] + gamma * runningReturn;
-            returns[t] = runningReturn;
-        }
-        
-        // 标准化回报
-        const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-        const std = Math.sqrt(returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length + 1e-8);
-        return returns.map(r => (r - mean) / std);
+        // 使用Memory类替代trajectory
+        this.memory = new Memory();
     }
 
     // 选择动作
@@ -59,17 +25,40 @@ class Agent {
         // 计算动作概率
         const actionProbs = this.network.forward(state);
         
+        let action;
+        let logProb;
+        
         // Epsilon-greedy探索策略
         if (Math.random() < this.epsilon) {
             // 探索：随机选择动作
-            const randomAction = Math.floor(Math.random() * actionProbs.length);
-            this.recordStep(state, randomAction, null, Math.log(actionProbs[randomAction] + 1e-8));
-            return randomAction;
+            action = Math.floor(Math.random() * actionProbs.length);
+            logProb = Math.log(actionProbs[action] + 1e-8);
         } else {
             // 利用：选择概率最高的动作
-            const bestAction = actionProbs.indexOf(Math.max(...actionProbs));
-            this.recordStep(state, bestAction, null, Math.log(actionProbs[bestAction] + 1e-8));
-            return bestAction;
+            action = actionProbs.indexOf(Math.max(...actionProbs));
+            logProb = Math.log(actionProbs[action] + 1e-8);
+        }
+        
+        // 记录状态和动作（奖励将在环境step后记录）
+        this.memory.record(state, action, null, logProb);
+        
+        return action;
+    }
+    
+    // 记录奖励
+    recordReward(reward, nextState = null, done = false) {
+        if (this.memory.rewards.length < this.memory.actions.length) {
+            // 更新最后一个记录的奖励
+            this.memory.rewards[this.memory.rewards.length - 1] = reward;
+            
+            // 如果提供了下一个状态和终止标志，也记录它们
+            if (nextState !== null) {
+                this.memory.nextStates.push(nextState);
+            }
+            
+            if (done !== null) {
+                this.memory.dones.push(done);
+            }
         }
     }
 
@@ -89,15 +78,17 @@ class Agent {
         this.episodeCount++;
         
         // 更新最后一步的奖励
-        this.trajectory.rewards[this.trajectory.rewards.length - 1] = finalReward;
+        if (this.memory.rewards.length > 0 && this.memory.rewards[this.memory.rewards.length - 1] === null) {
+            this.memory.rewards[this.memory.rewards.length - 1] = finalReward;
+        }
         
         // 计算折扣回报
-        const returns = this.computeDiscountedReturns(this.trajectory.rewards);
+        const returns = this.memory.computeDiscountedReturns();
         
         // 计算策略梯度
-        for (let t = 0; t < this.trajectory.states.length; t++) {
-            const state = this.trajectory.states[t];
-            const action = this.trajectory.actions[t];
+        for (let t = 0; t < this.memory.states.length; t++) {
+            const state = this.memory.states[t];
+            const action = this.memory.actions[t];
             const G = returns[t];
             
             // 计算梯度并更新权重
@@ -107,8 +98,8 @@ class Agent {
         // 更新探索率
         this.updateExplorationRate();
         
-        // 清理轨迹
-        this.clearTrajectory();
+        // 清理记忆
+        this.memory.clear();
     }
 
     // 添加检查是否收敛的方法

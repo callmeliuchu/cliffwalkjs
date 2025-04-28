@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>强化学习实验测试</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px 5px 10px 0;
+            cursor: pointer;
+        }
+        .info {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>强化学习实验测试</h1>
+    
+    <div class="info">
+        <p>这是一个简化版的测试页面，用于运行强化学习实验。</p>
+        <p>请打开浏览器控制台(F12)查看训练和评估结果。</p>
+    </div>
+    
+    <div>
+        <button id="runBtn">运行训练</button>
+        <button id="evalBtn">评估智能体</button>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="network.js"></script>
+    <script src="memory.js"></script>
+    <script src="agent.js"></script>
+    <script src="env.js"></script>
+    <script src="experiment.js"></script>
+    
+    <script>
+        // 全局变量
+        let trainedAgent = null;
+        let env = null;
+        
+        // 运行训练按钮
+        document.getElementById('runBtn').addEventListener('click', function() {
+            console.clear();
+            console.log("开始训练...");
+            
+            // 创建环境和智能体
+            const rows = 4;
+            const cols = 12;
+            env = new CliffWalkEnv(rows, cols);
+            const agent = new Agent(rows * cols, 4);
+            
+            // 运行训练
+            console.time("训练耗时");
+            trainedAgent = train(agent, env);
+            console.timeEnd("训练耗时");
+            
+            console.log("训练完成！可以点击'评估智能体'按钮查看评估结果。");
+        });
+        
+        // 评估按钮
+        document.getElementById('evalBtn').addEventListener('click', function() {
+            if (!trainedAgent || !env) {
+                console.log("请先运行训练！");
+                return;
+            }
+            
+            console.log("开始评估...");
+            evaluate(trainedAgent, env);
+        });
+        
+        // 页面加载完成
+        console.log("页面已加载。请点击'运行训练'按钮开始实验。");
+        console.log("训练过程将在控制台中显示，可能需要一些时间，请耐心等待。");
+    </script>
+</body>
+</html> 
